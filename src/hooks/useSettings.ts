@@ -17,7 +17,19 @@ export const useSettings = () => {
   useEffect(() => {
     const savedSettings = localStorage.getItem('userSettings');
     if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+      const parsedSettings = JSON.parse(savedSettings);
+      setSettings(parsedSettings);
+      
+      // Apply theme immediately on load
+      if (parsedSettings.theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
+      // Apply font immediately on load
+      document.documentElement.style.fontFamily = parsedSettings.font === 'inter' ? 'Inter, sans-serif' : 
+        parsedSettings.font === 'roboto' ? 'Roboto, sans-serif' : 'Montserrat, sans-serif';
     }
   }, []);
 
@@ -28,7 +40,11 @@ export const useSettings = () => {
     
     // Apply theme changes immediately
     if (key === 'theme') {
-      document.documentElement.classList.toggle('dark', value === 'dark');
+      if (value === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
     
     // Apply font changes immediately
@@ -38,5 +54,21 @@ export const useSettings = () => {
     }
   };
 
-  return { settings, updateSetting };
+  const resetSettings = () => {
+    const defaultSettings = {
+      language: 'english',
+      theme: 'light',
+      font: 'inter'
+    };
+    setSettings(defaultSettings);
+    localStorage.setItem('userSettings', JSON.stringify(defaultSettings));
+    
+    // Apply default theme
+    document.documentElement.classList.remove('dark');
+    
+    // Apply default font
+    document.documentElement.style.fontFamily = 'Inter, sans-serif';
+  };
+
+  return { settings, updateSetting, resetSettings };
 };

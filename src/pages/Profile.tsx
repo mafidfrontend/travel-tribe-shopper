@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,17 +7,44 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { User, Globe, Palette, Type, Save, Edit2 } from 'lucide-react';
+import { User, Globe, Palette, Type, Save, Edit2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
+import { useProfile } from '@/hooks/useProfile';
 import { toast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
-  const { settings, updateSetting } = useSettings();
+  const { settings, updateSetting, resetSettings } = useSettings();
+  const { profile, isLoading: profileLoading, updateProfile } = useProfile();
   const [isEditingUsername, setIsEditingUsername] = useState(false);
-  const [newUsername, setNewUsername] = useState(user?.username || '');
+  const [newUsername, setNewUsername] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
+  const [originalSettings, setOriginalSettings] = useState(settings);
+
+  // Track original settings when component mounts
+  useEffect(() => {
+    setOriginalSettings(settings);
+  }, []);
+
+  // Reset changes when navigating away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (hasChanges) {
+        // Reset to original settings
+        Object.keys(originalSettings).forEach(key => {
+          updateSetting(key as keyof typeof originalSettings, originalSettings[key as keyof typeof originalSettings]);
+        });
+      }
+    };
+
+    // Listen for route changes (when navigating away)
+    return () => {
+      if (hasChanges) {
+        handleBeforeUnload();
+      }
+    };
+  }, [hasChanges, originalSettings, updateSetting]);
 
   const languages = [
     { value: 'english', label: 'English' },
@@ -42,55 +69,87 @@ const Profile: React.FC = () => {
 
   const handleUsernameEdit = () => {
     setIsEditingUsername(true);
-    setNewUsername(user?.username || '');
+    setNewUsername(profile?.username || user?.username || '');
   };
 
-  const handleUsernameSave = () => {
-    if (newUsername.trim() && newUsername !== user?.username) {
-      // Here you would implement the actual username update logic
-      toast({
-        title: "Username updated",
-        description: `Username changed to ${newUsername}`,
-      });
+  const handleUsernameSave = async () => {
+    if (newUsername.trim() && newUsername !== profile?.username) {
+      const success = await updateProfile({ username: newUsername });
+      if (success) {
+        toast({
+          title: "Foydalanuvchi nomi yangilandi",
+          description: `Foydalanuvchi nomi ${newUsername}ga o'zgartirildi`,
+        });
+      } else {
+        toast({
+          title: "Xatolik",
+          description: "Foydalanuvchi nomini yangilashda xatolik yuz berdi",
+          variant: "destructive",
+        });
+      }
     }
     setIsEditingUsername(false);
   };
 
   const handleUsernameCancel = () => {
-    setNewUsername(user?.username || '');
+    setNewUsername(profile?.username || user?.username || '');
     setIsEditingUsername(false);
   };
 
   const handleSave = () => {
+    setOriginalSettings(settings);
     setHasChanges(false);
     toast({
-      title: "Settings saved",
-      description: "Your preferences have been updated successfully.",
+      title: "Sozlamalar saqlandi",
+      description: "Sizning afzalliklaringiz muvaffaqiyatli yangilandi.",
     });
   };
 
+  const handleDiscardChanges = () => {
+    // Reset to original settings
+    Object.keys(originalSettings).forEach(key => {
+      updateSetting(key as keyof typeof originalSettings, originalSettings[key as keyof typeof originalSettings]);
+    });
+    setHasChanges(false);
+    toast({
+      title: "O'zgarishlar bekor qilindi",
+      description: "Barcha o'zgarishlar asl holatiga qaytarildi.",
+    });
+  };
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Profil yuklanmoqda...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 p-6">
       <div className="flex items-center space-x-4 mb-8">
         <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
           <User className="w-8 h-8 text-white" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{user?.name}</h1>
-          <p className="text-lg text-gray-600">@{user?.username}</p>
+          <h1 className="text-3xl font-bold">{profile?.name || user?.name}</h1>
+          <p className="text-lg text-muted-foreground">@{profile?.username || user?.username}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Language Settings */}
-        <Card>
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Globe className="w-5 h-5" />
-              <span>Language</span>
+              <span>Til</span>
             </CardTitle>
             <CardDescription>
-              Choose your preferred language for the application
+              Ilova uchun kerakli tilni tanlang
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -98,8 +157,8 @@ const Profile: React.FC = () => {
               value={settings.language}
               onValueChange={(value) => handleSettingChange('language', value)}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select language" />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Tilni tanlang" />
               </SelectTrigger>
               <SelectContent>
                 {languages.map((lang) => (
@@ -113,20 +172,20 @@ const Profile: React.FC = () => {
         </Card>
 
         {/* Theme Settings */}
-        <Card>
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Palette className="w-5 h-5" />
-              <span>Appearance</span>
+              <span>Ko'rinish</span>
             </CardTitle>
             <CardDescription>
-              Customize the look and feel of your application
+              Ilovaning ko'rinishini sozlang
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="dark-mode" className="text-sm font-medium">
-                Dark Mode
+                Qorong'u rejim
               </Label>
               <Switch
                 id="dark-mode"
@@ -136,18 +195,21 @@ const Profile: React.FC = () => {
                 }
               />
             </div>
+            <div className="text-xs text-muted-foreground">
+              {settings.theme === 'dark' ? 'Qorong\'u rejim yoqilgan' : 'Yorug\' rejim yoqilgan'}
+            </div>
           </CardContent>
         </Card>
 
         {/* Font Settings */}
-        <Card>
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Type className="w-5 h-5" />
-              <span>Typography</span>
+              <span>Shrift</span>
             </CardTitle>
             <CardDescription>
-              Select your preferred font family
+              Kerakli shrift turini tanlang
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -155,8 +217,8 @@ const Profile: React.FC = () => {
               value={settings.font}
               onValueChange={(value) => handleSettingChange('font', value)}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select font" />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Shriftni tanlang" />
               </SelectTrigger>
               <SelectContent>
                 {fonts.map((font) => (
@@ -170,60 +232,77 @@ const Profile: React.FC = () => {
         </Card>
 
         {/* Account Info */}
-        <Card>
+        <Card className="h-fit">
           <CardHeader>
-            <CardTitle>Account Information</CardTitle>
+            <CardTitle>Hisob ma'lumotlari</CardTitle>
             <CardDescription>
-              Your account details and statistics
+              Sizning hisob tafsilotlaringiz
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="text-sm font-medium text-gray-500">Full Name</Label>
-              <p className="text-lg font-medium">{user?.name}</p>
+              <Label className="text-sm font-medium text-muted-foreground">To'liq ism</Label>
+              <p className="text-lg font-medium">{profile?.name || user?.name}</p>
             </div>
             <Separator />
             <div>
-              <Label className="text-sm font-medium text-gray-500">Username</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Foydalanuvchi nomi</Label>
               {isEditingUsername ? (
                 <div className="flex items-center space-x-2 mt-1">
                   <Input
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
                     className="flex-1"
-                    placeholder="Enter username"
+                    placeholder="Foydalanuvchi nomini kiriting"
                   />
                   <Button size="sm" onClick={handleUsernameSave}>
-                    Save
+                    Saqlash
                   </Button>
                   <Button size="sm" variant="outline" onClick={handleUsernameCancel}>
-                    Cancel
+                    Bekor qilish
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center justify-between mt-1">
-                  <p className="text-lg font-medium">@{user?.username}</p>
+                  <p className="text-lg font-medium">@{profile?.username || user?.username}</p>
                   <Button size="sm" variant="outline" onClick={handleUsernameEdit}>
                     <Edit2 className="w-3 h-3 mr-1" />
-                    Edit
+                    Tahrirlash
                   </Button>
                 </div>
               )}
             </div>
+            {profile?.createdAt && (
+              <>
+                <Separator />
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Ro'yxatdan o'tgan sana</Label>
+                  <p className="text-sm">{new Date(profile.createdAt).toLocaleDateString('uz-UZ')}</p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Save Button */}
+      {/* Action Buttons */}
       {hasChanges && (
-        <div className="fixed bottom-6 right-6">
+        <div className="fixed bottom-6 right-6 flex space-x-3">
+          <Button
+            onClick={handleDiscardChanges}
+            size="lg"
+            variant="outline"
+            className="shadow-lg"
+          >
+            Bekor qilish
+          </Button>
           <Button
             onClick={handleSave}
             size="lg"
             className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg"
           >
             <Save className="w-4 h-4 mr-2" />
-            Save Changes
+            Saqlash
           </Button>
         </div>
       )}
