@@ -30,6 +30,8 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const API_BASE_URL = 'https://nt-shopping-list.onrender.com/api';
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -47,8 +49,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserInfo = async (authToken: string) => {
     try {
-      console.log('Fetching user info with token:', authToken);
-      const response = await fetch('https://nt-shopping-list.onrender.com/api/auth/', {
+      console.log('Foydalanuvchi ma\'lumotlarini olish:', authToken);
+      const response = await fetch(`${API_BASE_URL}/auth/`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -56,23 +58,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         },
       });
       
-      console.log('Auth response status:', response.status);
+      console.log('Auth javob status:', response.status);
       
       if (response.ok) {
         const userData = await response.json();
-        console.log('User data received:', userData);
+        console.log('Foydalanuvchi ma\'lumotlari olindi:', userData);
         setUser({
           id: userData._id || userData.id,
           name: userData.name,
           username: userData.username
         });
       } else {
-        console.error('Auth failed, removing token');
+        console.error('Autentifikatsiya muvaffaqiyatsiz, token o\'chirildi');
         localStorage.removeItem('token');
         setToken(null);
       }
     } catch (error) {
-      console.error('Failed to fetch user info:', error);
+      console.error('Foydalanuvchi ma\'lumotlarini olishda xatolik:', error);
       localStorage.removeItem('token');
       setToken(null);
     } finally {
@@ -81,8 +83,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (username: string, password: string) => {
-    console.log('Attempting login for:', username);
-    const response = await fetch('https://nt-shopping-list.onrender.com/api/auth/', {
+    console.log('Login urinishi:', username);
+    const response = await fetch(`${API_BASE_URL}/auth/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -90,22 +92,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       body: JSON.stringify({ username, password }),
     });
 
-    console.log('Login response status:', response.status);
+    console.log('Login javob status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('Login failed:', errorData);
-      throw new Error('Login failed');
+      console.error('Login muvaffaqiyatsiz:', errorData);
+      throw new Error('Login muvaffaqiyatsiz');
     }
 
     const data = await response.json();
-    console.log('Login response data:', data);
+    console.log('Login javob ma\'lumotlari:', data);
     const authToken = data.token;
     
     localStorage.setItem('token', authToken);
     setToken(authToken);
     
-    // Set user data directly from login response if available
+    // Agar login javobida foydalanuvchi ma'lumotlari bo'lsa, to'g'ridan-to'g'ri o'rnatamiz
     if (data.user) {
       setUser({
         id: data.user._id || data.user.id,
@@ -119,8 +121,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const register = async (name: string, username: string, password: string) => {
-    console.log('Attempting registration for:', username);
-    const response = await fetch('https://nt-shopping-list.onrender.com/api/users/', {
+    console.log('Ro\'yxatdan o\'tish urinishi:', username);
+    const response = await fetch(`${API_BASE_URL}/users/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -128,22 +130,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       body: JSON.stringify({ name, username, password }),
     });
 
-    console.log('Registration response status:', response.status);
+    console.log('Ro\'yxatdan o\'tish javob status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('Registration failed:', errorData);
-      throw new Error('Registration failed');
+      console.error('Ro\'yxatdan o\'tish muvaffaqiyatsiz:', errorData);
+      throw new Error('Ro\'yxatdan o\'tish muvaffaqiyatsiz');
     }
 
     const data = await response.json();
-    console.log('Registration response data:', data);
+    console.log('Ro\'yxatdan o\'tish javob ma\'lumotlari:', data);
     const authToken = data.token;
     
     localStorage.setItem('token', authToken);
     setToken(authToken);
     
-    // Set user data directly from registration response
+    // Agar ro'yxatdan o'tish javobida foydalanuvchi ma'lumotlari bo'lsa, to'g'ridan-to'g'ri o'rnatamiz
     if (data.user) {
       setUser({
         id: data.user._id || data.user.id,
@@ -157,7 +159,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    console.log('Logging out user');
+    console.log('Foydalanuvchi chiqish');
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
