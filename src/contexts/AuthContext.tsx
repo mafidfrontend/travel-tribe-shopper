@@ -47,16 +47,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserInfo = async (authToken: string) => {
     try {
+      console.log('Fetching user info with token:', authToken);
       const response = await fetch('https://nt-shopping-list.onrender.com/api/auth/', {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
         },
       });
       
+      console.log('Auth response status:', response.status);
+      
       if (response.ok) {
         const userData = await response.json();
-        setUser(userData);
+        console.log('User data received:', userData);
+        setUser({
+          id: userData._id || userData.id,
+          name: userData.name,
+          username: userData.username
+        });
       } else {
+        console.error('Auth failed, removing token');
         localStorage.removeItem('token');
         setToken(null);
       }
@@ -70,6 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (username: string, password: string) => {
+    console.log('Attempting login for:', username);
     const response = await fetch('https://nt-shopping-list.onrender.com/api/auth/', {
       method: 'POST',
       headers: {
@@ -78,19 +90,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       body: JSON.stringify({ username, password }),
     });
 
+    console.log('Login response status:', response.status);
+
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Login failed:', errorData);
       throw new Error('Login failed');
     }
 
     const data = await response.json();
+    console.log('Login response data:', data);
     const authToken = data.token;
     
     localStorage.setItem('token', authToken);
     setToken(authToken);
-    await fetchUserInfo(authToken);
+    
+    // Set user data directly from login response if available
+    if (data.user) {
+      setUser({
+        id: data.user._id || data.user.id,
+        name: data.user.name,
+        username: data.user.username
+      });
+      setIsLoading(false);
+    } else {
+      await fetchUserInfo(authToken);
+    }
   };
 
   const register = async (name: string, username: string, password: string) => {
+    console.log('Attempting registration for:', username);
     const response = await fetch('https://nt-shopping-list.onrender.com/api/users/', {
       method: 'POST',
       headers: {
@@ -99,19 +128,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       body: JSON.stringify({ name, username, password }),
     });
 
+    console.log('Registration response status:', response.status);
+
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Registration failed:', errorData);
       throw new Error('Registration failed');
     }
 
     const data = await response.json();
+    console.log('Registration response data:', data);
     const authToken = data.token;
     
     localStorage.setItem('token', authToken);
     setToken(authToken);
-    await fetchUserInfo(authToken);
+    
+    // Set user data directly from registration response
+    if (data.user) {
+      setUser({
+        id: data.user._id || data.user.id,
+        name: data.user.name,
+        username: data.user.username
+      });
+      setIsLoading(false);
+    } else {
+      await fetchUserInfo(authToken);
+    }
   };
 
   const logout = () => {
+    console.log('Logging out user');
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
