@@ -5,9 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { CreateGroupDialog } from '@/components/groups/CreateGroupDialog';
+import { useNavigate } from 'react-router-dom';
 
 const Groups: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   // Mock data for demonstration
   const userGroups = [
@@ -45,6 +48,10 @@ const Groups: React.FC = () => {
     group.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleViewGroup = (groupId: string) => {
+    navigate(`/groups/${groupId}`);
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -53,10 +60,12 @@ const Groups: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">My Groups</h1>
           <p className="text-gray-600">Manage your travel shopping groups</p>
         </div>
-        <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Create New Group
-        </Button>
+        <CreateGroupDialog>
+          <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Create New Group
+          </Button>
+        </CreateGroupDialog>
       </div>
 
       {/* Search */}
@@ -112,7 +121,11 @@ const Groups: React.FC = () => {
                   <span>Created {new Date(group.createdAt).toLocaleDateString()}</span>
                 </div>
 
-                <Button variant="outline" className="w-full group-hover:bg-blue-50 group-hover:border-blue-200">
+                <Button 
+                  variant="outline" 
+                  className="w-full group-hover:bg-blue-50 group-hover:border-blue-200"
+                  onClick={() => handleViewGroup(group.id)}
+                >
                   View Group
                 </Button>
               </div>
@@ -136,10 +149,12 @@ const Groups: React.FC = () => {
               }
             </p>
             {!searchQuery && (
-              <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First Group
-              </Button>
+              <CreateGroupDialog>
+                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Group
+                </Button>
+              </CreateGroupDialog>
             )}
           </CardContent>
         </Card>

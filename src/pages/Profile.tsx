@@ -2,22 +2,22 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { User, Globe, Palette, Type, Save } from 'lucide-react';
+import { User, Globe, Palette, Type, Save, Edit2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettings } from '@/hooks/useSettings';
 import { toast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
+  const { settings, updateSetting } = useSettings();
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [newUsername, setNewUsername] = useState(user?.username || '');
   const [hasChanges, setHasChanges] = useState(false);
-  const [settings, setSettings] = useState({
-    language: 'english',
-    theme: 'light',
-    font: 'inter'
-  });
 
   const languages = [
     { value: 'english', label: 'English' },
@@ -32,13 +32,36 @@ const Profile: React.FC = () => {
   ];
 
   const handleSettingChange = (key: string, value: string | boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    if (typeof value === 'boolean') {
+      updateSetting(key as any, value ? 'dark' : 'light');
+    } else {
+      updateSetting(key as any, value);
+    }
     setHasChanges(true);
   };
 
+  const handleUsernameEdit = () => {
+    setIsEditingUsername(true);
+    setNewUsername(user?.username || '');
+  };
+
+  const handleUsernameSave = () => {
+    if (newUsername.trim() && newUsername !== user?.username) {
+      // Here you would implement the actual username update logic
+      toast({
+        title: "Username updated",
+        description: `Username changed to ${newUsername}`,
+      });
+    }
+    setIsEditingUsername(false);
+  };
+
+  const handleUsernameCancel = () => {
+    setNewUsername(user?.username || '');
+    setIsEditingUsername(false);
+  };
+
   const handleSave = () => {
-    // Apply settings logic here
-    localStorage.setItem('userSettings', JSON.stringify(settings));
     setHasChanges(false);
     toast({
       title: "Settings saved",
@@ -109,7 +132,7 @@ const Profile: React.FC = () => {
                 id="dark-mode"
                 checked={settings.theme === 'dark'}
                 onCheckedChange={(checked) => 
-                  handleSettingChange('theme', checked ? 'dark' : 'light')
+                  handleSettingChange('theme', checked)
                 }
               />
             </div>
@@ -162,7 +185,30 @@ const Profile: React.FC = () => {
             <Separator />
             <div>
               <Label className="text-sm font-medium text-gray-500">Username</Label>
-              <p className="text-lg font-medium">@{user?.username}</p>
+              {isEditingUsername ? (
+                <div className="flex items-center space-x-2 mt-1">
+                  <Input
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    className="flex-1"
+                    placeholder="Enter username"
+                  />
+                  <Button size="sm" onClick={handleUsernameSave}>
+                    Save
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleUsernameCancel}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-lg font-medium">@{user?.username}</p>
+                  <Button size="sm" variant="outline" onClick={handleUsernameEdit}>
+                    <Edit2 className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

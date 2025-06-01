@@ -1,13 +1,14 @@
 
 import React from 'react';
 import { Bell, Users, CheckCircle, Clock, X } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const Notifications: React.FC = () => {
   // Mock data for demonstration
-  const notifications = [
+  const initialNotifications = [
     {
       id: '1',
       type: 'join_request',
@@ -45,6 +46,14 @@ const Notifications: React.FC = () => {
       actionRequired: false
     }
   ];
+
+  const {
+    notifications,
+    markAllAsRead,
+    handleApprove,
+    handleDecline,
+    dismissNotification
+  } = useNotifications(initialNotifications);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -89,7 +98,7 @@ const Notifications: React.FC = () => {
           <p className="text-gray-600 mt-1">Stay updated with your group activities</p>
         </div>
         {unreadCount > 0 && (
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={markAllAsRead}>
             Mark all as read
           </Button>
         )}
@@ -136,7 +145,12 @@ const Notifications: React.FC = () => {
                         {!notification.isRead && (
                           <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                         )}
-                        <Button variant="ghost" size="sm" className="p-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="p-1"
+                          onClick={() => dismissNotification(notification.id)}
+                        >
                           <X className="w-4 h-4" />
                         </Button>
                       </div>
@@ -150,10 +164,18 @@ const Notifications: React.FC = () => {
                       
                       {notification.actionRequired && (
                         <div className="space-x-2">
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDecline(notification.id)}
+                          >
                             Decline
                           </Button>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                          <Button 
+                            size="sm" 
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => handleApprove(notification.id)}
+                          >
                             Approve
                           </Button>
                         </div>

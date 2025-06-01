@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Groups from "./pages/Groups";
+import GroupDetails from "./pages/GroupDetails";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
@@ -50,6 +51,11 @@ const AppRoutes = () => {
       <Route path="/groups" element={
         <ProtectedRoute>
           <Groups />
+        </ProtectedRoute>
+      } />
+      <Route path="/groups/:groupId" element={
+        <ProtectedRoute>
+          <GroupDetails />
         </ProtectedRoute>
       } />
       <Route path="/notifications" element={
